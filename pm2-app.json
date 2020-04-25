@@ -1,0 +1,9 @@
+{
+    "apps": [
+        {
+            "name": "nano-talk-server",
+            "script": "npm",
+            "args" : "run run-production"
+        }
+    ]
+}
