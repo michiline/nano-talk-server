@@ -13,7 +13,12 @@ export const tagRequest = (req, res, next) => {
   req.tag = uuidv4()
   return next()
 }
-export const logStart = () => {
+
+export const logStartService = (service) => {
+  console.log(`${millisToString()} - ${service} started`)
+}
+
+export const logStart = (service) => {
   console.log(`${millisToString()} - ${process.env.NAME || 'Server'} started on port ${process.env.PORT || 3001}`)
 }
 
