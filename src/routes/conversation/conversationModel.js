@@ -1,9 +1,15 @@
 import mongoose from 'mongoose'
 
 const Schema = mongoose.Schema
-const userSchema = new Schema(
+
+const messageSchema = new Schema(
   {
-    users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    text: {
+      type: String
+    },
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User' },
     created: {
       type: Number,
       default: () => {
@@ -19,4 +25,23 @@ const userSchema = new Schema(
   }
 )
 
-export default mongoose.model('Conversation', userSchema)
+const conversationSchema = new Schema(
+  {
+    users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    messages: [messageSchema],
+    created: {
+      type: Number,
+      default: () => {
+        return Date.now()
+      }
+    },
+    updated: {
+      type: Number,
+      default: () => {
+        return Date.now()
+      }
+    }
+  }
+)
+
+export default mongoose.model('Conversation', conversationSchema)

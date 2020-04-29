@@ -1,5 +1,6 @@
 import WebSocket from 'ws'
 import { logStartService } from '../common'
+import { userRepository, conversationRepository } from '../routes'
 
 const runChat = (server) => {
   let connectedSockets = {}
@@ -23,44 +24,68 @@ const runChat = (server) => {
     ws.isAlive = true
     ws.on('pong', () => heartbeat(ws))
 
-    const uid = req.headers.uid
-    ws.send(`Socket ${uid} connected`)
-    connectedSockets[uid] = ws
+    const id = req.headers.id
+    ws.send(`Socket ${id} connected`)
+    connectedSockets[id] = ws
     console.log(`Connected sockets: [${Object.keys(connectedSockets)}]`)
 
-    ws.on('message', (message) => {
+    ws.on('message', async (messageString) => {
       try {
-        const { type, text, recipientUid } = JSON.parse(message)
-        if (!type || !text || !recipientUid) {
+        // message = { text && recipientId [&& conversationId] }
+        const message = JSON.parse(messageString)
+        // check message format
+        if (!message.text || !message.recipientId) {
           console.log('Message not properly formatted.')
           return
         }
-        console.log(`Received ${type} from ${uid} for ${recipientUid}: ${text}`)
-        if (type === 'text') {
-          if (connectedSockets[recipientUid]) {
-            connectedSockets[recipientUid].send({
-              type,
-              text,
-              senderUid: uid
-            })
-          } else {
-            console.log(`Recipient ${recipientUid} not connected.`)
-          }
+        console.log(`Received msg from ${id} for ${message.recipientId}: ${message.text}`)
+        // store message
+        // if conversation does not exist, create it
+        if (!message.conversationId) {
+          console.log('Conversation does not exist, creating new.')
+          const conversation = await conversationRepository.create({
+            users: [id, message.recipientId],
+            text: message.text
+          })
+          console.log('Updating users with conversation.')
+          await userRepository.createConversation({
+            users: [id, message.recipientId],
+            conversation: conversation._id
+          })
+        } else {
+          // conversation exists, add message
+          console.log('Conversation exists, adding message.')
+          await conversationRepository.addMessage({
+            conversation: message.conversationId,
+            text: message.text,
+            user: id
+          })
+        }
+        // check if recipient online
+        if (connectedSockets[message.recipientId]) {
+          // push to socket
+          connectedSockets[message.recipientId].send(JSON.stringify({
+            text: message.text,
+            senderId: id
+          }))
+        } else {
+          console.log(`Recipient ${message.recipientId} not connected.`)
         }
       } catch (err) {
+        console.log(err)
         console.log('Message not a json.')
       }
     })
 
     ws.on('close', (props, props2) => {
-      console.log(`Socket ${uid} disconnected.`)
-      delete connectedSockets[uid]
+      console.log(`Socket ${id} disconnected.`)
+      delete connectedSockets[id]
       console.log(`Connected sockets: [${Object.keys(connectedSockets)}]`)
     })
   })
 
   server.on('upgrade', (req, socket, head) => {
-    // if (req.headers.uid not in database) {
+    // if (req.headers.id not in database) {
     //   console.log('Reject socket upgrade.')
     //   socket.destroy()
     // }
