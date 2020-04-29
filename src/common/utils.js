@@ -38,7 +38,7 @@ export const setResponseHeaders = (req, res, next) => {
   }
 }
 
-export const catchErrors = (err, req, res, next) => {
+export const catchAppErrors = (err, req, res, next) => {
   if (err.type && err.type === 'entity.parse.failed') {
     return res.status(400).send({
       message: 'INVALID_JSON_DATA'

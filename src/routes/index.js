@@ -1,3 +1,1 @@
-import Example from './example'
-
-export { Example }
+export * from './user'
