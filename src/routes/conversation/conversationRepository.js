@@ -2,12 +2,12 @@ import mongoose from 'mongoose'
 import Conversation from './conversationModel'
 
 export default {
-  create ({ users, text }) {
+  create ({ userIds, text }) {
     const data = {
-      users: [mongoose.Types.ObjectId(users[0]), mongoose.Types.ObjectId(users[1])],
+      userIds: [mongoose.Types.ObjectId(userIds[0]), mongoose.Types.ObjectId(userIds[1])],
       messages: [{
         text: text,
-        user: mongoose.Types.ObjectId(users[0])
+        userId: mongoose.Types.ObjectId(userIds[0])
       }]
     }
     const conversation = new Conversation(data)
@@ -16,15 +16,15 @@ export default {
   get (query) {
     return Conversation.find(query)
   },
-  addMessage ({ conversation, text, user }) {
+  addMessage ({ conversationId, text, userId }) {
     const filter = {
-      _id: mongoose.Types.ObjectId(conversation)
+      _id: mongoose.Types.ObjectId(conversationId)
     }
     const update = {
       $push: {
         messages: {
           text: text,
-          user: mongoose.Types.ObjectId(user)
+          userId: mongoose.Types.ObjectId(userId)
         }
       }
     }

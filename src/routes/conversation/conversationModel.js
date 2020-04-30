@@ -7,9 +7,10 @@ const messageSchema = new Schema(
     text: {
       type: String
     },
-    user: {
+    userId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User' },
+      ref: 'User'
+    },
     created: {
       type: Number,
       default: () => {
@@ -27,7 +28,7 @@ const messageSchema = new Schema(
 
 const conversationSchema = new Schema(
   {
-    users: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+    userIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
     messages: [messageSchema],
     created: {
       type: Number,

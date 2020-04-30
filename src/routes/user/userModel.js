@@ -3,7 +3,7 @@ import mongoose from 'mongoose'
 const Schema = mongoose.Schema
 const userSchema = new Schema(
   {
-    conversations: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Conversation' }],
+    conversationIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Conversation' }],
     created: {
       type: Number,
       default: () => {

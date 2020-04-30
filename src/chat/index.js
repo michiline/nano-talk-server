@@ -17,7 +17,7 @@ const runChat = (server) => {
     })
   }, 59000)
 
-  const wss = new WebSocket.Server({ noServer: true, path: '/chat' })
+  const wss = new WebSocket.Server({ noServer: true, path: '/socket' })
   logStartService('Chat Server')
 
   wss.on('connection', (ws, req) => {
@@ -29,10 +29,20 @@ const runChat = (server) => {
     connectedSockets[id] = ws
     console.log(`Connected sockets: [${Object.keys(connectedSockets)}]`)
 
+    // message object
+    // const message = {
+    //   data: [
+    //     {
+    //       recipientId: userId,
+    //       [conversationId: conversationId] - for new conversation can be empty
+    //       text: String
+    //     }
+    //   ]
+    // }
     ws.on('message', async (messageString) => {
       try {
-        // message = { text && recipientId [&& conversationId] }
         const message = JSON.parse(messageString)
+
         // check message format
         if (!message.text || !message.recipientId) {
           console.log('Message not properly formatted.')
@@ -44,21 +54,21 @@ const runChat = (server) => {
         if (!message.conversationId) {
           console.log('Conversation does not exist, creating new.')
           const conversation = await conversationRepository.create({
-            users: [id, message.recipientId],
+            userIds: [id, message.recipientId],
             text: message.text
           })
           console.log('Updating users with conversation.')
           await userRepository.createConversation({
-            users: [id, message.recipientId],
-            conversation: conversation._id
+            userIds: [id, message.recipientId],
+            conversationId: conversation._id
           })
         } else {
           // conversation exists, add message
           console.log('Conversation exists, adding message.')
           await conversationRepository.addMessage({
-            conversation: message.conversationId,
+            conversationId: message.conversationId,
             text: message.text,
-            user: id
+            userId: id
           })
         }
         // check if recipient online
@@ -69,6 +79,7 @@ const runChat = (server) => {
             senderId: id
           }))
         } else {
+          // mark message
           console.log(`Recipient ${message.recipientId} not connected.`)
         }
       } catch (err) {

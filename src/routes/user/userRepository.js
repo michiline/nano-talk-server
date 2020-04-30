@@ -9,16 +9,16 @@ export default {
   get (query) {
     return User.find(query)
   },
-  createConversation ({ users, conversationId }) {
+  createConversation ({ userIds, conversationId }) {
     const filter = {
-      _id: [mongoose.Types.ObjectId(users[0]), mongoose.Types.ObjectId(users[1])]
+      _id: [mongoose.Types.ObjectId(userIds[0]), mongoose.Types.ObjectId(userIds[1])]
     }
     const update = {
       $set: {
         updated: Date.now()
       },
       $push: {
-        conversations: mongoose.Types.ObjectId(conversationId)
+        conversationIds: mongoose.Types.ObjectId(conversationId)
       }
     }
     const options = {}
