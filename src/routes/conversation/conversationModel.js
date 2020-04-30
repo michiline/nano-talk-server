@@ -4,12 +4,12 @@ const Schema = mongoose.Schema
 
 const messageSchema = new Schema(
   {
-    text: {
-      type: String
-    },
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
+    },
+    text: {
+      type: String
     },
     created: {
       type: Number,

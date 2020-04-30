@@ -1,7 +1,6 @@
 import WebSocket from 'ws'
-import { logStartService } from '../common'
+import { logStartService, millisToString } from '../common'
 import { userRepository, conversationRepository } from '../routes'
-
 const runChat = (server) => {
   let connectedSockets = {}
 
@@ -20,79 +19,80 @@ const runChat = (server) => {
   const wss = new WebSocket.Server({ noServer: true, path: '/socket' })
   logStartService('Chat Server')
 
-  wss.on('connection', (ws, req) => {
-    ws.isAlive = true
-    ws.on('pong', () => heartbeat(ws))
-
-    const id = req.headers.id
-    ws.send(`Socket ${id} connected`)
-    connectedSockets[id] = ws
-    console.log(`Connected sockets: [${Object.keys(connectedSockets)}]`)
-
-    // message object
-    // const message = {
-    //   data: [
-    //     {
-    //       recipientId: userId,
-    //       [conversationId: conversationId] - for new conversation can be empty
-    //       text: String
-    //     }
-    //   ]
-    // }
-    ws.on('message', async (messageString) => {
-      try {
-        const message = JSON.parse(messageString)
-
-        // check message format
-        if (!message.text || !message.recipientId) {
-          console.log('Message not properly formatted.')
-          return
-        }
-        console.log(`Received msg from ${id} for ${message.recipientId}: ${message.text}`)
-        // store message
-        // if conversation does not exist, create it
-        if (!message.conversationId) {
-          console.log('Conversation does not exist, creating new.')
-          const conversation = await conversationRepository.create({
-            userIds: [id, message.recipientId],
-            text: message.text
-          })
-          console.log('Updating users with conversation.')
-          await userRepository.createConversation({
-            userIds: [id, message.recipientId],
-            conversationId: conversation._id
-          })
-        } else {
-          // conversation exists, add message
-          console.log('Conversation exists, adding message.')
-          await conversationRepository.addMessage({
-            conversationId: message.conversationId,
-            text: message.text,
-            userId: id
-          })
-        }
-        // check if recipient online
-        if (connectedSockets[message.recipientId]) {
-          // push to socket
-          connectedSockets[message.recipientId].send(JSON.stringify({
-            text: message.text,
-            senderId: id
-          }))
-        } else {
-          // mark message
-          console.log(`Recipient ${message.recipientId} not connected.`)
-        }
-      } catch (err) {
-        console.log(err)
-        console.log('Message not a json.')
-      }
-    })
-
-    ws.on('close', (props, props2) => {
-      console.log(`Socket ${id} disconnected.`)
-      delete connectedSockets[id]
+  wss.on('connection', async (ws, req) => {
+    try {
+      // start heartbeat
+      ws.isAlive = true
+      ws.on('pong', () => heartbeat(ws))
+      // authenticate
+      const userId = req.headers.uid
+      // store socket
+      connectedSockets[userId] = ws
+      // fetch last connected info
+      const user = await userRepository.findById(userId)
+      const userConversations = await conversationRepository.getUnreadMessages({
+        conversationIds: user.conversationIds,
+        lastConnected: user.lastConnected
+      })
+      const unreadConversations = userConversations.filter(conversation => conversation.messages.length > 0)
+      console.log(`User ${userId} last connected at ${millisToString(new Date(user.lastConnected))}`)
       console.log(`Connected sockets: [${Object.keys(connectedSockets)}]`)
-    })
+      ws.send(JSON.stringify(unreadConversations))
+      // message object
+      // const message = {
+      //   data: [
+      //     {
+      //       recipientId: userId,
+      //       [conversationId: conversationId] - for new conversation can be empty
+      //       text: String
+      //     }
+      //   ]
+      // }
+      ws.on('message', async (conversationsString) => {
+        try {
+          let conversations = JSON.parse(conversationsString).map(
+            conversation => {
+              conversation.messages = conversation.messages.map(
+                message => {
+                  message.userId = userId
+                  return message
+                }
+              )
+              return conversation
+            }
+          )
+          for (const { conversationId, recipientId, messages } of conversations) {
+            // check if recipient online
+            if (connectedSockets[recipientId]) {
+              // push to socket
+              connectedSockets[recipientId].send(JSON.stringify({ conversationId, messages }))
+              console.log(`${userId} sent ${messages.length} messages to ${recipientId}.`)
+            } else {
+              console.log(`${userId} stored ${messages.length} messages for ${recipientId}.`)
+            }
+            await conversationRepository.addMessages({
+              conversationId,
+              messages
+            })
+          }
+        } catch (err) {
+          console.log(err)
+          console.log('Message not a json.')
+        }
+      })
+
+      ws.on('close', async () => {
+        console.log(`Socket ${userId} disconnected.`)
+        delete connectedSockets[userId]
+        await userRepository.updateOne({
+          userId,
+          lastConnected: Date.now()
+        })
+        console.log(`Connected sockets: [${Object.keys(connectedSockets)}]`)
+      })
+    } catch (err) {
+      console.log(err)
+    }
   })
 
   server.on('upgrade', (req, socket, head) => {

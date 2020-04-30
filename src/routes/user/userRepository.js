@@ -9,11 +9,26 @@ export default {
   get (query) {
     return User.find(query)
   },
+  findById (userId) {
+    return User.findById(mongoose.Types.ObjectId(userId))
+  },
+  updateOne ({ userId, lastConnected }) {
+    const filter = {
+      _id: mongoose.Types.ObjectId(userId)
+    }
+    const doc = {
+      lastConnected
+    }
+    const options = {
+      omitUndefined: true
+    }
+    return User.updateOne(filter, doc, options)
+  },
   createConversation ({ userIds, conversationId }) {
     const filter = {
       _id: [mongoose.Types.ObjectId(userIds[0]), mongoose.Types.ObjectId(userIds[1])]
     }
-    const update = {
+    const doc = {
       $set: {
         updated: Date.now()
       },
@@ -22,7 +37,7 @@ export default {
       }
     }
     const options = {}
-    return User.updateMany(filter, update, options)
+    return User.updateMany(filter, doc, options)
   }
   // updateOne (id, data) {
   //   data.updated = Date.now()

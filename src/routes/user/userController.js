@@ -18,6 +18,15 @@ export default {
       console.log(err)
       return next(err)
     }
+  },
+  async createConversation (req, res, next) {
+    try {
+      res.data = await userRepository.createConversation(req.body)
+      return next()
+    } catch (err) {
+      console.log(err)
+      return next(err)
+    }
   }
   // async delete (req, res, next) {
   //   try {

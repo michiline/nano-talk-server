@@ -12,29 +12,38 @@ export default {
   },
   async create (req, res, next) {
     try {
-      res.data = await conversationRepository.create(req.body)
+      const { userIds } = req.body
+      res.data = await conversationRepository.create({
+        userIds
+      })
+      return next()
+    } catch (err) {
+      console.log(err)
+      return next(err)
+    }
+  },
+  async addMessage (req, res, next) {
+    try {
+      const { conversationId, text, userId } = req.body
+      res.data = await conversationRepository.addMessage({
+        conversationId, text, userId
+      })
+      return next()
+    } catch (err) {
+      console.log(err)
+      return next(err)
+    }
+  },
+  async addMessages (req, res, next) {
+    try {
+      const { conversationId, messages } = req.body
+      res.data = await conversationRepository.addMessages({
+        conversationId, messages
+      })
       return next()
     } catch (err) {
       console.log(err)
       return next(err)
     }
   }
-  // async delete (req, res, next) {
-  //   try {
-  //     res.data = await userRepository.delete(req.params.id)
-  //     return next()
-  //   } catch (err) {
-  //     console.log(err)
-  //     return next(err)
-  //   }
-  // },
-  // async update (req, res, next) {
-  //   try {
-  //     res.data = await userRepository.update(req.params.id, req.body)
-  //     return next()
-  //   } catch (err) {
-  //     console.log(err)
-  //     return next(err)
-  //   }
-  // }
 }

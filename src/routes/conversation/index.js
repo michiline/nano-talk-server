@@ -14,6 +14,10 @@ router.post('/',
   controller.create
 )
 
+router.post('/message',
+  controller.addMessages
+)
+
 router.use(catchErrors)
 router.use(sendResponse)
 

@@ -4,7 +4,7 @@ import mongoose from 'mongoose'
 import dotenv from 'dotenv'
 import bodyParser from 'body-parser'
 import { setResponseHeaders, tagRequest, logRequest, catchAppErrors, logStart } from './common'
-import { userRouter, conversationRouter } from './routes'
+import { userRouter, conversationRouter, chatRouter } from './routes'
 import { runChat } from './chat'
 
 if (process.env.NODE_ENV !== 'production') {
@@ -27,6 +27,7 @@ app.use(logRequest)
 // routes
 app.use('/api/user', userRouter)
 app.use('/api/conversation', conversationRouter)
+app.use('/api/chat', chatRouter)
 
 app.use(setResponseHeaders)
 app.use(catchAppErrors)

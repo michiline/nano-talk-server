@@ -14,6 +14,10 @@ router.post('/',
   controller.create
 )
 
+router.post('/createConversation',
+  controller.createConversation
+)
+
 router.use(catchErrors)
 router.use(sendResponse)
 
