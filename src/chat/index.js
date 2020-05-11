@@ -28,26 +28,19 @@ const runChat = (server) => {
       const userId = req.headers.uid
       // store socket
       connectedSockets[userId] = ws
-      // fetch last connected info
+      // fetch user info
       const user = await userRepository.findById(userId)
       const userConversations = await conversationRepository.getUnreadMessages({
         conversationIds: user.conversationIds,
         lastConnected: user.lastConnected
       })
+      // find unread messages
       const unreadConversations = userConversations.filter(conversation => conversation.messages.length > 0)
       console.log(`User ${userId} last connected at ${millisToString(new Date(user.lastConnected))}`)
       console.log(`Connected sockets: [${Object.keys(connectedSockets)}]`)
       ws.send(JSON.stringify(unreadConversations))
-      // message object
-      // const message = {
-      //   data: [
-      //     {
-      //       recipientId: userId,
-      //       [conversationId: conversationId] - for new conversation can be empty
-      //       text: String
-      //     }
-      //   ]
-      // }
+
+      // what happens when server recieves a message
       ws.on('message', async (conversationsString) => {
         try {
           let conversations = JSON.parse(conversationsString).map(
@@ -96,6 +89,8 @@ const runChat = (server) => {
   })
 
   server.on('upgrade', (req, socket, head) => {
+    console.log(req.url)
+    console.log(req.headers)
     // if (req.headers.id not in database) {
     //   console.log('Reject socket upgrade.')
     //   socket.destroy()
